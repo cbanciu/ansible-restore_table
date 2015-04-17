@@ -13,4 +13,5 @@ table ==> Table to extract. <br />
 table_new ==> Use this if you want to restore into a new table. <br />
 db_name ==> Database to use for restoring the table. Can be same. <br />
 backup:yes ==> Will dump the database before restoring the table. <br />
-timeout ==> async value for longer tasks. Default value 1800 seconds.
+timeout ==> async value for longer tasks. Default value 1800 seconds. <br />
+

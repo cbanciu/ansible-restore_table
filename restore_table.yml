@@ -1,12 +1,13 @@
 ---
-#- name: Restore
-#  hosts: all
-#  user: root
-#  gather_facts: True
+- name: Gathering facts
+  hosts: all
+  user: root
+  gather_facts: True
 
 - name: Extract table 
   user: root
   hosts: all
   roles:
+    - mysql_python
     - restore_table
 

@@ -1,0 +1,9 @@
+---
+- name: Install MySQL Python on Ubuntu
+  apt: name=python-mysqldb state=present update_cache=yes
+  when: ansible_os_family == "Debian"
+
+- name: Install MySQL-Python on RHEL
+  yum: name=MySQL-python state=present
+  when: ansible_os_family == "RedHat"
+  
