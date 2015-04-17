@@ -8,7 +8,7 @@
 
 - name: Extract the table
   shell: zcat {{ db_backup }} | {{ working_dir }}/extract_sql.pl -t {{ table }} > {{ working_dir }}/{{ table }}.sql
-  async: 3600
+  async: "{{ timeout|default(1800) }}"
   poll: 15
 
 - name: Modify the table
@@ -33,7 +33,7 @@
 - name: Dump non Plesk database
   mysql_db: name={{ db_name }} state=dump target={{ working_dir }}/{{ db_name }}.sql
   when: backup=='yes' and plesk.stat.exists == false
-  async: 3600
+  async: "{{ timeout|default(1800) }}"
   poll: 15
 
 - name: Create database
@@ -43,7 +43,7 @@
 - name: Import the table
   mysql_db: name={{ db_name }} state=import target={{ working_dir }}/{{ table }}.sql
   when: plesk.stat.exists == false
-  async: 3600
+  async: "{{ timeout|default(1800) }}"
   poll: 15
 
 - name: Get Plesk password
@@ -54,7 +54,7 @@
 - name: Dump Plesk database
   mysql_db: name={{ db_name }} state=dump target={{ working_dir }}/{{ db_name }}.sql login_user=admin login_password={{ plesk_password.stdout }}
   when: backup=='yes' and plesk.stat.exists == true
-  async: 3600
+  async: "{{ timeout|default(1800) }}"
   poll: 15
 
 - name: Create database
@@ -64,6 +64,6 @@
 - name: Import the table
   mysql_db: name={{ db_name }} state=import target={{ working_dir }}/{{ table }}.sql login_user=admin login_password={{ plesk_password.stdout }}
   when: plesk.stat.exists == true
-  async: 3600
+  async: "{{ timeout|default(1800) }}"
   poll: 15
 
