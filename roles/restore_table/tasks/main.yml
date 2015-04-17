@@ -1,0 +1,59 @@
+---
+
+- name: Create working folder
+  file: path={{ working_dir}} state=directory
+
+- name: Copy the script 
+  copy: src=extract_sql.pl dest={{ working_dir }}/extract_sql.pl mode="u=rwx,g=rx,o=rx"
+
+- name: Extract the table
+  shell: zcat {{ db_backup }} | {{ working_dir }}/extract_sql.pl -t {{ table }} > {{ working_dir }}/{{ table }}.sql
+
+- name: Modify the table
+  replace:
+    dest: "{{ working_dir }}/{{ table }}.sql"
+    regexp: "{{ item.regexp }}"
+    replace: "{{ item.replace }}"
+    backup: yes
+  with_items:
+    - { regexp: "DROP TABLE IF EXISTS `{{ table }}`", replace: "DROP TABLE IF EXISTS `{{ table_new }}`" }
+    - { regexp: "CREATE TABLE `{{ table }}`", replace: "CREATE TABLE `{{ table_new }}`" }
+    - { regexp: "LOCK TABLES `{{ table }}`", replace: "LOCK TABLES `{{ table_new }}`" }
+    - { regexp: "ALTER TABLE `{{ table }}`", replace: "ALTER TABLE `{{ table_new }}`" }
+    - { regexp: "INSERT INTO `{{ table }}`", replace: "INSERT INTO `{{ table_new }}`" }
+  when: table_new != none
+
+- name: Check Plesk
+  stat: path=/usr/local/psa/version
+  register: plesk
+  ignore_errors: True
+
+- name: Dump non Plesk database
+  mysql_db: name={{ db_name }} state=dump target={{ working_dir }}/{{ db_name }}.sql
+  when: backup=='yes' and plesk.stat.exists == false
+
+- name: Create database
+  mysql_db: name={{ db_name }} state=present
+  when: plesk.stat.exists == false
+
+- name: Import the table
+  mysql_db: name={{ db_name }} state=import target={{ working_dir }}/{{ table }}.sql
+  when: plesk.stat.exists == false
+
+- name: Get Plesk password
+  command: cat /etc/psa/.psa.shadow
+  register: plesk_password
+  when: plesk.stat.exists == true
+
+- name: Dump Plesk database
+  mysql_db: name={{ db_name }} state=dump target={{ working_dir }}/{{ db_name }}.sql login_user=admin login_password={{ plesk_password.stdout }}
+  when: backup=='yes' and plesk.stat.exists == true
+
+- name: Create database
+  mysql_db: name={{ db_name }} state=present login_user=admin login_password={{ plesk_password.stdout }}
+  when: plesk.stat.exists == true
+
+- name: Import the table
+  mysql_db: name={{ db_name }} state=import target={{ working_dir }}/{{ table }}.sql login_user=admin login_password={{ plesk_password.stdout }}
+  when: plesk.stat.exists == true
+
