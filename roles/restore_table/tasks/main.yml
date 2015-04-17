@@ -8,13 +8,15 @@
 
 - name: Extract the table
   shell: zcat {{ db_backup }} | {{ working_dir }}/extract_sql.pl -t {{ table }} > {{ working_dir }}/{{ table }}.sql
+  async: 3600
+  poll: 15
 
 - name: Modify the table
   replace:
     dest: "{{ working_dir }}/{{ table }}.sql"
     regexp: "{{ item.regexp }}"
     replace: "{{ item.replace }}"
-    backup: yes
+    backup: no
   with_items:
     - { regexp: "DROP TABLE IF EXISTS `{{ table }}`", replace: "DROP TABLE IF EXISTS `{{ table_new }}`" }
     - { regexp: "CREATE TABLE `{{ table }}`", replace: "CREATE TABLE `{{ table_new }}`" }
@@ -31,6 +33,8 @@
 - name: Dump non Plesk database
   mysql_db: name={{ db_name }} state=dump target={{ working_dir }}/{{ db_name }}.sql
   when: backup=='yes' and plesk.stat.exists == false
+  async: 3600
+  poll: 15
 
 - name: Create database
   mysql_db: name={{ db_name }} state=present
@@ -39,6 +43,8 @@
 - name: Import the table
   mysql_db: name={{ db_name }} state=import target={{ working_dir }}/{{ table }}.sql
   when: plesk.stat.exists == false
+  async: 3600
+  poll: 15
 
 - name: Get Plesk password
   command: cat /etc/psa/.psa.shadow
@@ -48,6 +54,8 @@
 - name: Dump Plesk database
   mysql_db: name={{ db_name }} state=dump target={{ working_dir }}/{{ db_name }}.sql login_user=admin login_password={{ plesk_password.stdout }}
   when: backup=='yes' and plesk.stat.exists == true
+  async: 3600
+  poll: 15
 
 - name: Create database
   mysql_db: name={{ db_name }} state=present login_user=admin login_password={{ plesk_password.stdout }}
@@ -56,4 +64,6 @@
 - name: Import the table
   mysql_db: name={{ db_name }} state=import target={{ working_dir }}/{{ table }}.sql login_user=admin login_password={{ plesk_password.stdout }}
   when: plesk.stat.exists == true
+  async: 3600
+  poll: 15
 
